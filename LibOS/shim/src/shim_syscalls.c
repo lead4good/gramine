@@ -71,5 +71,5 @@ noreturn void return_from_syscall(PAL_CONTEXT* context) {
     asan_unpoison_current_stack(libos_stack_bottom - SHIM_THREAD_LIBOS_STACK_SIZE,
                                 SHIM_THREAD_LIBOS_STACK_SIZE);
 #endif
-    restore_pal_context(context);
+    restore_context(context);
 }

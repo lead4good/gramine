@@ -74,7 +74,7 @@ noreturn void restore_child_context_after_clone(struct shim_context* context);
  * This is the low-level function used by \p return_from_syscall and
  * \p restore_child_context_after_clone.
  */
-noreturn void restore_pal_context(PAL_CONTEXT* context);
+noreturn void restore_context(PAL_CONTEXT* context);
 /*!
  * \brief Creates a signal frame
  *
