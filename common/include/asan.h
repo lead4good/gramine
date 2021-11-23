@@ -66,15 +66,16 @@
  * program, it's likely that ASan will generate a false positive.
  *
  * - Make sure code instrumented by AddressSanitizer runs *only* on stacks controlled by Gramine. If
- *   code needs to run on user's stack, it should be all annotated with
- *   `__attribute_no_sanitize_address` or written in assembly.
+ *   code needs to run on user's stack (e.g. the top-level vDSO functions), it should all be
+ *   annotated with `__attribute_no_sanitize_address` or written in assembly.
  *
  * - When a thread exits, make sure that all stack memory dedicated to this thread is unpoisoned
  *   before it's unmapped or recycled.
  *
- * - When a thread abandons the current stack, it should unpoison that stack. When unpoisoning the
- *   *current* stack, use `asan_unpoison_current_stack`, and make sure the caller is not
- *   instrumented by ASan.
+ * - When a thread abandons the current stack, it should unpoison that stack. Typically, there will
+ *   be a chain of `noreturn` functions, one of them (preferably the last) should call
+ *   `asan_unpoison_current_stack`. This function, or any after it, cannot be ASan-instrumented:
+ *   otherwise, they could poison the stack again before leaving.
  *
  *   This is necessary only if the jump is from the middle of a call stack. If all C functions have
  *   returned, and the jump is from a top-level assembly wrapper, there's no need for cleanup.
@@ -145,7 +146,7 @@
 #define ASAN_POISON_STACK_LEFT            0xf1
 #define ASAN_POISON_STACK_MID             0xf2
 #define ASAN_POISON_STACK_RIGHT           0xf3
-#define ASAN_POISON_STACK_USE_AFTER_SCOPE 0xf8
+#define ASAN_POISON_STACK_AFTER_SCOPE     0xf8
 #define ASAN_POISON_ALLOCA_LEFT           0xca
 #define ASAN_POISON_ALLOCA_RIGHT          0xcb
 #define ASAN_POISON_USER                  0xf7  /* currently used for unallocated SGX memory */
@@ -161,8 +162,9 @@ void asan_poison_region(uintptr_t addr, size_t size, uint8_t value);
  * exactly. */
 void asan_unpoison_region(uintptr_t addr, size_t size);
 
-/* Unpoison current stack. If the current stack frame is between `addr .. addr + size`, behaves the
- * same as `asan_unpoison_region`. Otherwise, prints a warning. */
+/* Unpoison current stack. The only difference between this function and `asan_unpoison_region` is
+ * that it checks whether the current stack frame is within `addr .. addr + size`. If it's not, it
+ * prints a warning instead. */
 void asan_unpoison_current_stack(uintptr_t addr, size_t size);
 
 /* Initialization callbacks. Generated in object .init sections. Graphene doesn't call these anyway,
@@ -206,7 +208,8 @@ void __asan_report_store_n(uintptr_t p, size_t size);
  * the region starting from the current stack frame, until stack top.
  *
  * Our implementation is a no-op, because it's inconvenient to determine the top of the current
- * stack in a universal fashion. Instead, we rely on Gramine to clean up the right stack.
+ * stack in a universal fashion. Instead, we rely on ASan-specific logic in Gramine to clean up the
+ * right stack.
  */
 void __asan_handle_no_return(void);
 
@@ -217,7 +220,7 @@ void __asan_handle_no_return(void);
  * - partial right redzone: from `addr + size` to `ALIGN_UP(addr + size, ASAN_ALLOCA_REDZONE_SIZE)`
  * - right redzone: ASAN_ALLOCA_REDZONE_SIZE bytes after partial right redzone
  *
- * `addr` will be aligned to ASAN_ALLOCA_REDZONE_SIZE.
+ * `addr` must be aligned to ASAN_ALLOCA_REDZONE_SIZE.
  */
 void __asan_alloca_poison(uintptr_t addr, size_t size);
 

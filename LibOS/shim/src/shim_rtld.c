@@ -821,6 +821,8 @@ int register_library(const char* name, unsigned long load_address) {
 }
 
 #ifdef ASAN
+/* Helper function for unpoisoning the stack before jump: we need to do it from a function that is
+ * not instrumented by ASan, so that the stack is guaranteed to stay unpoisoned. */
 __attribute_no_sanitize_address
 noreturn static void cleanup_and_call_elf_entry(ElfW(Addr) entry, void* argp) {
     uintptr_t libos_stack_bottom = (uintptr_t)SHIM_TCB_GET(libos_stack_bottom);

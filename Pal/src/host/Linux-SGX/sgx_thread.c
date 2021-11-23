@@ -149,6 +149,7 @@ int current_enclave_thread_cnt(void) {
  * handling. Notice that this sets up the untrusted thread -- an enclave thread is set
  * up by other means (e.g., the GS register is set by an SGX-enforced TCS.OGSBASGX).
  */
+__attribute_no_sanitize_address
 int pal_thread_init(void* tcbptr) {
     PAL_TCB_URTS* tcb = tcbptr;
     int ret;
