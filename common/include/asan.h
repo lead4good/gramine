@@ -73,9 +73,9 @@
  *   before it's unmapped or recycled.
  *
  * - When a thread abandons the current stack, it should unpoison that stack. Typically, there will
- *   be a chain of `noreturn` functions, one of them (preferably the last) should call
- *   `asan_unpoison_current_stack`. This function, or any after it, cannot be ASan-instrumented:
- *   otherwise, they could poison the stack again before leaving.
+ *   be a chain of `noreturn` functions: one of them (preferably the last) should call
+ *   `asan_unpoison_current_stack`. This function (and any code it handles control to, before
+ *   leaving the stack) cannot be ASan-instrumented: otherwise, it could poison the stack again.
  *
  *   This is necessary only if the jump is from the middle of a call stack. If all C functions have
  *   returned, and the jump is from a top-level assembly wrapper, there's no need for cleanup.
