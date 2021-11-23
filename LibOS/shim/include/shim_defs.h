@@ -8,7 +8,8 @@
 #define ERESTARTNOINTR  513 /* Always restart. */
 #define ERESTARTNOHAND  514 /* Restart if no signal handler. */
 
-/* Internal LibOS stack size: 7 pages + one guard page. */
+/* Internal LibOS stack size: 7 pages + one guard page normally, 15 pages + one guard page when ASan
+ * is enabled (stack sanitization causes functions to take up more space). */
 #ifdef ASAN
 #define SHIM_THREAD_LIBOS_STACK_SIZE (15 * PAGE_SIZE + PAGE_SIZE)
 #else
