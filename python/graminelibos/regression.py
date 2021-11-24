@@ -20,6 +20,52 @@ def expectedFailureIf(predicate):
         return unittest.expectedFailure
     return lambda func: func
 
+
+def kill_process_group(proc):
+    try:
+        # after `setsid`, pgid should be the same as pid
+        if proc.pid != os.getpgid(proc.pid):
+            print('WARNING: main process changed pgid, this might indicate an error and prevent '
+                  'all processes from being cleaned up', file=sys.stderr)
+    except ProcessLookupError:
+        pass
+
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+
+
+def run_command(cmd, *, timeout, can_fail=False, **kwds):
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          preexec_fn=os.setsid, **kwds) as proc:
+        timed_out = False
+        try:
+            raw_stdout, raw_stderr = proc.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            kill_process_group(proc)
+            raw_stdout, raw_stderr = proc.communicate()
+        else:
+            # Make sure no child processes remain
+            kill_process_group(proc)
+
+        stdout = raw_stdout.decode(errors='backslashreplace')
+        stderr = raw_stderr.decode(errors='backslashreplace')
+
+        # Print stdout/stderr so that pytest can capture it
+        sys.stdout.write(stdout)
+        sys.stderr.write(stderr)
+
+        if timed_out:
+            raise AssertionError('Command {} timed out after {} s'.format(cmd, timeout))
+
+        if proc.returncode and not can_fail:
+            raise subprocess.CalledProcessError(proc.returncode, cmd, raw_stdout, raw_stderr)
+
+        return proc.returncode, stdout, stderr
+
+
 class RegressionTestCase(unittest.TestCase):
     DEFAULT_TIMEOUT = (20 if HAS_SGX else 10)
 
@@ -76,24 +122,9 @@ class RegressionTestCase(unittest.TestCase):
         if prefix is None:
             prefix = []
 
-        with subprocess.Popen(
-                [*prefix, fspath(self.loader_path), fspath(self.libpal_path), 'init', *args],
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                preexec_fn=os.setpgrp,
-                **kwds) as process:
-            try:
-                stdout, stderr = process.communicate(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                self.fail('timeout ({} s) expired'.format(timeout))
-
-            self.print_output(stdout, stderr)
-
-            if process.returncode:
-                raise subprocess.CalledProcessError(
-                    process.returncode, args, stdout, stderr)
-
-        return stdout.decode(), stderr.decode()
+        cmd = [*prefix, fspath(self.loader_path), fspath(self.libpal_path), 'init', *args]
+        _returncode, stdout, stderr = run_command(cmd, timeout=timeout, **kwds)
+        return stdout, stderr
 
     @classmethod
     def run_native_binary(cls, args, timeout=None, libpath=None, **kwds):
@@ -104,33 +135,8 @@ class RegressionTestCase(unittest.TestCase):
         if not libpath is None:
             my_env["LD_LIBRARY_PATH"] = libpath
 
-        with subprocess.Popen(args,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                env=my_env,
-                preexec_fn=os.setpgrp,
-                **kwds) as process:
-            try:
-                stdout, stderr = process.communicate(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                raise AssertionError('timeout ({} s) expired'.format(timeout))
-
-            cls.print_output(stdout, stderr)
-
-            if process.returncode:
-                raise subprocess.CalledProcessError(
-                    process.returncode, args, stdout, stderr)
-
-        return stdout.decode(), stderr.decode()
-
-    @staticmethod
-    def print_output(stdout: bytes, stderr: bytes):
-        '''
-        Print command output (stdout, stderr) so that pytest can capture it.
-        '''
-
-        sys.stdout.write(stdout.decode(errors='surrogateescape'))
-        sys.stderr.write(stderr.decode(errors='surrogateescape'))
+        _returncode, stdout, stderr = run_command(args, timeout=timeout, env=my_env, **kwds)
+        return stdout, stderr
 
     @contextlib.contextmanager
     def expect_returncode(self, returncode):
