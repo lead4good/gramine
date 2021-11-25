@@ -453,7 +453,6 @@ class TC_30_Syscall(RegressionTestCase):
         self.assertIn('[bss_cwd_buf] getcwd succeeded: /', stdout)
         self.assertIn('[mmapped_cwd_buf] getcwd succeeded: /', stdout)
 
-    @unittest.skipIf(USES_MUSL, 'musl incorrectly assumes all arguments are valid')
     def test_010_stat_invalid_args(self):
         stdout, _ = self.run_binary(['stat_invalid_args'])
 

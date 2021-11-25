@@ -26,7 +26,7 @@ stage('build') {
         env.MESON_OPTIONS += ' -Dasan=enabled'
     }
     if (env.CC == 'clang') {
-        env.MESON_OPTIONS += ' -Dmusl-libc=disabled'
+        env.MESON_OPTIONS += ' -Dmusl=disabled'
     }
 
     try {

@@ -27,7 +27,7 @@ class TestConfig:
     - `binary_dir`: path to test binaries, passed as `binary_dir` to manifest templates; expands
       @GRAMINE_PKGLIBDIR@ to library directory of Gramine's installation
 
-    - `libc`: name of the libc to build agains, currently supported: 'glibc' (default), 'musl'
+    - `libc`: name of the libc to build against, currently supported: 'glibc' (default), 'musl'
 
     Ninja handles the following targets:
 

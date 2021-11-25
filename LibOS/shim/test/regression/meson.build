@@ -136,6 +136,8 @@ endif
 tests_musl = tests
 
 if host_machine.cpu_family() == 'x86_64'
+    # We use musl-gcc wrapper, which does not support building c++, so this test is not enabled
+    # with musl.
     tests += {
         'bootstrap_cpp': {
             'source': 'bootstrap_cpp.cpp',
@@ -222,8 +224,11 @@ foreach conf: configurations
 
         name_prefix = ''
         if conf['use_musl']
+            # XXX: this is a hack, to be removed when we fix building tests
             c_args += ['-specs', musl_specs_path]
             link_args += ['-specs', musl_specs_path]
+            # This prefix will be stripped when installing executables to a designated directory
+            # below.
             name_prefix = 'musl_'
         endif
 
