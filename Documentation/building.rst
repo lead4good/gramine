@@ -19,7 +19,7 @@ Gramine consists of several components:
 
 The build of Gramine implies building at least the first two components. The
 build of the patched C library is optional but highly recommended for
-performance reasons. Patched glibc is built by default.
+performance reasons. Both patched glibc and patched musl are built by default.
 
 Gramine currently only works on the x86_64 architecture. Gramine is currently
 tested on Ubuntu 18.04/20.04, along with Linux kernel version 5.x. We recommend
@@ -182,7 +182,7 @@ omitted, Gramine's build system will try to determine the right path.
    that ``/usr/local/bin`` is in your path (in ``PATH`` environment variable).
 
 Set ``-Dglibc=`` or ``-Dmusl=`` options to ``disabled`` if you wish not to build
-the support for any (they are both build by default).
+the support for any (they are both built by default).
 
 Additional build options
 ^^^^^^^^^^^^^^^^^^^^^^^^
