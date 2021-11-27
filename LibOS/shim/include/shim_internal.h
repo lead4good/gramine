@@ -45,7 +45,7 @@ void shim_log(int level, const char* fmt, ...) __attribute__((format(printf, 2, 
  */
 noreturn void shim_emulate_syscall(PAL_CONTEXT* context);
 /*!
- * \brief Restore the CPU context after handling a syscall.
+ * \brief Restore the CPU context.
  *
  * \param context CPU context to restore.
  *
@@ -54,10 +54,13 @@ noreturn void shim_emulate_syscall(PAL_CONTEXT* context);
  * assume that the CPU context is the same as at the entry to the syscall (e.g. sigreturn, or signal
  * handling may change it).
  *
- * This function should be called from the LibOS stack. When AddressSanitizer is enabled, it also
- * performs stack cleanup.
+ * When AddressSanitizer is enabled, it also unpoisons the LibOS stack. Note at this point, we could
+ * also be running from the initial PAL stack, but we unconditionally unpoison the LibOS stack for
+ * simplicity.
  */
 noreturn void return_from_syscall(PAL_CONTEXT* context);
+/* Platform-specific part of return_from_syscall (called after ASan unpoisoning). */
+noreturn void _return_from_syscall(PAL_CONTEXT* context);
 /*!
  * \brief Restore the context after clone/fork.
  *
@@ -66,15 +69,6 @@ noreturn void return_from_syscall(PAL_CONTEXT* context);
  * Restores LibOS \p context after a successful clone or fork.
  */
 noreturn void restore_child_context_after_clone(struct shim_context* context);
-/*!
- * \brief Restore the CPU context.
- *
- * \param context CPU context to restore.
- *
- * This is the low-level function used by \p return_from_syscall and
- * \p restore_child_context_after_clone.
- */
-noreturn void restore_context(PAL_CONTEXT* context);
 /*!
  * \brief Creates a signal frame
  *

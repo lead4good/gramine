@@ -68,8 +68,8 @@ __attribute_no_sanitize_address
 noreturn void return_from_syscall(PAL_CONTEXT* context) {
 #ifdef ASAN
     uintptr_t libos_stack_bottom = (uintptr_t)SHIM_TCB_GET(libos_stack_bottom);
-    asan_unpoison_current_stack(libos_stack_bottom - SHIM_THREAD_LIBOS_STACK_SIZE,
-                                SHIM_THREAD_LIBOS_STACK_SIZE);
+    asan_unpoison_region(libos_stack_bottom - SHIM_THREAD_LIBOS_STACK_SIZE,
+                         SHIM_THREAD_LIBOS_STACK_SIZE);
 #endif
-    restore_context(context);
+    _return_from_syscall(context);
 }

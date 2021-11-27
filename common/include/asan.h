@@ -65,9 +65,9 @@
  * function), leaving the stack memory poisoned. If the same stack memory is used later in the
  * program, it's likely that ASan will generate a false positive.
  *
- * - Make sure code instrumented by AddressSanitizer runs *only* on stacks controlled by Gramine. If
- *   code needs to run on user's stack (e.g. the top-level vDSO functions), it should all be
- *   annotated with `__attribute_no_sanitize_address` or written in assembly.
+ * - Make sure no code instrumented by AddressSanitizer runs on a user stack. This is already a rule
+ *   in Gramine: no code runs on user stack, except for vDSO top-level functions (compiled without
+ *   ASan) and syscall entry code (written in assembly).
  *
  * - When a thread exits, make sure that all stack memory dedicated to this thread is unpoisoned
  *   before it's unmapped or recycled.
@@ -78,7 +78,9 @@
  *   leaving the stack) cannot be ASan-instrumented: otherwise, it could poison the stack again.
  *
  *   This is necessary only if the jump is from the middle of a call stack. If all C functions have
- *   returned, and the jump is from a top-level assembly wrapper, there's no need for cleanup.
+ *   returned, and the jump is from a top-level assembly wrapper, there's no need for cleanup:
+ *   ASan-instrumented functions poison parts of stack on entry/allocation, and unpoison these parts
+ *   on return.
  *
  *   The cleanup can also be skipped if we will not be using that stack again (e.g. LibOS code
  *   abandoning the initial PAL stack).
@@ -217,15 +219,15 @@ void __asan_handle_no_return(void);
  * Poison an area around a buffer allocated with `alloca`, using ASAN_POISON_ALLOCA_{LEFT,RIGHT}:
  *
  * - left redzone: ASAN_ALLOCA_REDZONE_SIZE bytes before `addr`
- * - partial right redzone: from `addr + size` to `ALIGN_UP(addr + size, ASAN_ALLOCA_REDZONE_SIZE)`
- * - right redzone: ASAN_ALLOCA_REDZONE_SIZE bytes after partial right redzone
+ * - right redzone: from `addr + size` to `ALIGN_UP(addr + size, ASAN_ALLOCA_REDZONE_SIZE) +
+ *     ASAN_ALLOCA_REDZONE_SIZE`
  *
  * `addr` must be aligned to ASAN_ALLOCA_REDZONE_SIZE.
  */
 void __asan_alloca_poison(uintptr_t addr, size_t size);
 
-/* Unpoison the stack area from `top` to `bottom`. Do nothing if `top` is zero. */
-void __asan_allocas_unpoison(uintptr_t top, uintptr_t bottom);
+/* Unpoison the stack area from `start` to `end`. Do nothing if `start` is zero. */
+void __asan_allocas_unpoison(uintptr_t start, uintptr_t end);
 
 /* Callbacks for setting the shadow memory to specific values. As with load/store callbacks, LLVM
  * normally generates inline stores and calls these functions only for bigger areas. This is

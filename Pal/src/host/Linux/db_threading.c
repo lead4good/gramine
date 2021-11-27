@@ -219,8 +219,13 @@ noreturn void _DkThreadExit(int* clear_child_tid) {
             break;
         }
     }
+
     /* we might still be using the stack we just marked as unused until we enter the asm mode,
      * so we do not unlock now but rather in asm below */
+
+#ifdef ASAN
+    asan_unpoison_region((uintptr_t)handle->thread.stack, THREAD_STACK_SIZE + ALT_STACK_SIZE);
+#endif
 
     /*
      * To make sure the compiler doesn't touch the stack after it was freed, we need to use asm:
@@ -236,9 +241,6 @@ noreturn void _DkThreadExit(int* clear_child_tid) {
                   "lock is not naturally aligned in g_thread_stack_lock");
     static_assert(sizeof(*clear_child_tid) == 4, "unexpected clear_child_tid size");
 
-#ifdef ASAN
-    asan_unpoison_region((uintptr_t)handle->thread.stack, THREAD_STACK_SIZE + ALT_STACK_SIZE);
-#endif
     _DkThreadExit_asm_stub(&g_thread_stack_lock.lock, clear_child_tid);
 }
 

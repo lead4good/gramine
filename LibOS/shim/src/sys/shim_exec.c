@@ -95,7 +95,7 @@ noreturn static void __shim_do_execve_rtld(void* new_argp, elf_auxv_t* new_auxv)
     put_handle(exec);
 
     log_debug("execve: start execution");
-    execute_elf_object(exec_map, new_argp, new_auxv, /*from_libos_stack=*/true);
+    execute_elf_object(exec_map, new_argp, new_auxv);
     /* NOTREACHED */
 
 error:
