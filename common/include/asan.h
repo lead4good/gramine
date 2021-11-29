@@ -65,10 +65,6 @@
  * function), leaving the stack memory poisoned. If the same stack memory is used later in the
  * program, it's likely that ASan will generate a false positive.
  *
- * - Make sure no code instrumented by AddressSanitizer runs on a user stack. This is already a rule
- *   in Gramine: no code runs on user stack, except for vDSO top-level functions (compiled without
- *   ASan) and syscall entry code (written in assembly).
- *
  * - When a thread exits, make sure that all stack memory dedicated to this thread is unpoisoned
  *   before it's unmapped or recycled.
  *
@@ -84,6 +80,9 @@
  *
  *   The cleanup can also be skipped if we will not be using that stack again (e.g. LibOS code
  *   abandoning the initial PAL stack).
+ *
+ * Note that we rely on the fact that no Gramine code runs on the user stack (except for vDSO, which
+ * we make sure to compile without ASan).
  */
 
 #ifndef ASAN_H_

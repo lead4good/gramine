@@ -49,12 +49,12 @@ static void asan_poison_right_redzone(uintptr_t addr, size_t size, size_t size_w
     assert((size_with_redzone & ASAN_SHADOW_MASK) == 0);
 
     uint8_t* shadow_ptr = (uint8_t*)ASAN_MEM_TO_SHADOW(addr + size);
-    uintptr_t left_part_size = (addr + size) & ASAN_SHADOW_MASK;
+    size_t left_part_size = (addr + size) & ASAN_SHADOW_MASK;
     if (left_part_size) {
         *shadow_ptr = left_part_size;
         shadow_ptr++;
     }
-    uint8_t shadow_size = (size_with_redzone - size) >> ASAN_SHADOW_SHIFT;
+    size_t shadow_size = (size_with_redzone - size) >> ASAN_SHADOW_SHIFT;
     _real_memset(shadow_ptr, value, shadow_size);
 }
 
@@ -72,7 +72,9 @@ void asan_unpoison_region(uintptr_t addr, size_t size) {
 
 __attribute__((noinline))
 void asan_unpoison_current_stack(uintptr_t addr, size_t size) {
-    uintptr_t frame = (uintptr_t)__builtin_frame_address(0);
+    int local;
+    uintptr_t frame = (uintptr_t)&local;
+
     if (!(addr <= frame && frame < addr + size)) {
         char buf[LOCATION_BUF_SIZE];
         describe_location(RETURN_ADDR() - 1, buf, sizeof(buf));
