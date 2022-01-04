@@ -4,10 +4,9 @@
  */
 
 /*
- * Implements mlock, mlock2, munlock, mlockall, munlockall (lock and unlock memory).
- * These syscalls are stubbed to always return success -- Gramine cannot guarantee that
- * the host OS will perform lock/unlock anyway, and a malicious OS can still swap pages
- * anyway.
+ * Implements mlock, mlock2, munlock, mlockall, munlockall (lock and unlock memory). These syscalls
+ * are stubbed to always return success -- Gramine cannot guarantee that the host OS will perform
+ * lock/unlock anyway, and a malicious OS can still swap pages anyway.
  *
  * This (dummy) functionality is required by .NET workloads.
  */
