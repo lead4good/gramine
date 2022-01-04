@@ -85,6 +85,7 @@ libos_sources = files(
     'sys/shim_pipe.c',
     'sys/shim_poll.c',
     'sys/shim_sched.c',
+    'sys/shim_mlock.c',
     'sys/shim_sigaction.c',
     'sys/shim_sleep.c',
     'sys/shim_socket.c',
